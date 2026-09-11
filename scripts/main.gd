@@ -17,6 +17,8 @@ var status_label: Label
 var timeline_label: Label
 var inspector_label: Label
 var prompt_input: LineEdit
+var file_dialog: FileDialog
+var imported_video_path := ""
 var viewport: SubViewport
 var camera: Camera3D
 
@@ -106,6 +108,13 @@ func _build_editor_ui() -> void:
 	load_button.pressed.connect(_load_project)
 	top_bar.add_child(load_button)
 
+	var export_button := Button.new()
+	export_button.text = "Download animation"
+	export_button.position = Vector2(785, 10)
+	export_button.size = Vector2(140, 36)
+	export_button.pressed.connect(_download_animation)
+	top_bar.add_child(export_button)
+
 	var right_panel := ColorRect.new()
 	right_panel.color = Color("#20283b")
 	right_panel.position = Vector2(940, 58)
@@ -158,13 +167,20 @@ func _build_editor_ui() -> void:
 	generate_button.pressed.connect(func() -> void: _generate_from_prompt(prompt_input.text))
 	right_panel.add_child(generate_button)
 
+	var video_button := Button.new()
+	video_button.text = "Import reference video"
+	video_button.position = Vector2(24, 464)
+	video_button.size = Vector2(280, 38)
+	video_button.pressed.connect(_open_video_picker)
+	right_panel.add_child(video_button)
+
 	var parts_title := Label.new()
 	parts_title.text = "RIG PARTS"
-	parts_title.position = Vector2(24, 476)
+	parts_title.position = Vector2(24, 514)
 	parts_title.add_theme_color_override("font_color", Color("#91a8d8"))
 	right_panel.add_child(parts_title)
 
-	var y := 510
+	var y := 548
 	for part_name in PARTS:
 		var button := Button.new()
 		button.text = part_name
@@ -173,6 +189,13 @@ func _build_editor_ui() -> void:
 		button.pressed.connect(_select_part.bind(part_name))
 		right_panel.add_child(button)
 		y += 32
+
+	file_dialog = FileDialog.new()
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	file_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	file_dialog.filters = PackedStringArray(["*.mp4, *.webm, *.mov, *.avi ; Video files"])
+	file_dialog.file_selected.connect(_import_reference_video)
+	overlay.add_child(file_dialog)
 
 	var timeline_panel := ColorRect.new()
 	timeline_panel.color = Color("#151a29")
@@ -356,6 +379,37 @@ func _save_project() -> void:
 	var file := FileAccess.open("user://blockmotion_project.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(data))
 	status_label.text = "Project saved to user://blockmotion_project.json"
+
+func _download_animation() -> void:
+	var export_dialog := FileDialog.new()
+	export_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	export_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	export_dialog.current_file = "blockmotion_animation.json"
+	export_dialog.filters = PackedStringArray(["*.json ; BlockMotion animation"])
+	add_child(export_dialog)
+	export_dialog.file_selected.connect(func(path: String) -> void:
+		var export_data := {
+			"format": "blockmotion-animation-v1",
+			"source_video": imported_video_path,
+			"keyframes": keyframes
+		}
+		var output := FileAccess.open(path, FileAccess.WRITE)
+		if output == null:
+			status_label.text = "Could not download animation"
+		else:
+			output.store_string(JSON.stringify(export_data, "  "))
+			status_label.text = "Animation downloaded to %s" % path
+		export_dialog.queue_free()
+	)
+	export_dialog.canceled.connect(export_dialog.queue_free)
+	export_dialog.popup_centered(Vector2i(620, 440))
+
+func _open_video_picker() -> void:
+	file_dialog.popup_centered(Vector2i(720, 480))
+
+func _import_reference_video(path: String) -> void:
+	imported_video_path = path
+	status_label.text = "Reference video selected. Pose tracking model hook is ready for integration."
 
 func _load_project() -> void:
 	if not FileAccess.file_exists("user://blockmotion_project.json"):

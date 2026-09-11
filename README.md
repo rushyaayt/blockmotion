@@ -10,6 +10,8 @@ BlockMotion is a Godot 4 prototype for creating block-style Minecraft animations
 - Frame stepping with Left/Right arrow keys
 - Project save/load using Godot's `user://` storage
 - Offline prompt-based animation generation for wave, walk, jump, and dance
+- Animation JSON download
+- Reference-video import workflow
 
 ## Run
 
@@ -42,3 +44,19 @@ The same project can be exported from Godot's export menu for Android, Windows, 
 4. The matching motion is converted into keyframes and applied to the block character. Use the arrow keys to preview the generated frames.
 
 The prompt generator currently works offline with these supported animation patterns. Prompts outside these patterns are reported clearly instead of silently producing the wrong animation. The current MVP stores keyframes and poses but does not yet export a Minecraft model or video.
+
+## Download an animation
+
+Click **Download animation** in the top bar and choose a `.json` filename. The exported file contains the BlockMotion animation format, keyframes, and the selected reference-video path. It can be backed up, shared, or imported by a future renderer/exporter.
+
+## Use a reference video
+
+1. Click **Import reference video**.
+2. Select an `.mp4`, `.webm`, `.mov`, or `.avi` file.
+3. The project records the selected source and exposes it in exported animation data.
+
+The current build includes the file-import workflow but does not yet perform pose tracking. Reproducing the exact motion from a video requires integrating a pose-estimation model (for example, a human/character pose tracker), mapping its joints to the block rig, and then generating keyframes. The imported video is not uploaded or analyzed by this offline MVP.
+
+## Download the application
+
+Download packaged releases from the [BlockMotion GitHub Releases page](https://github.com/rushyaayt/blockmotion/releases). If no release is published yet, install Godot 4.2 or newer, import this repository, and export for Android, Windows, or Linux from **Project > Export**. Android export requires the Android SDK and an installed export template.
