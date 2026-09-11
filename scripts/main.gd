@@ -16,6 +16,7 @@ var part_nodes: Dictionary = {}
 var status_label: Label
 var timeline_label: Label
 var inspector_label: Label
+var prompt_input: LineEdit
 var viewport: SubViewport
 var camera: Camera3D
 
@@ -137,21 +138,41 @@ func _build_editor_ui() -> void:
 	reset.pressed.connect(_reset_pose)
 	right_panel.add_child(reset)
 
+	var prompt_title := Label.new()
+	prompt_title.text = "PROMPT ANIMATION"
+	prompt_title.position = Vector2(24, 350)
+	prompt_title.add_theme_color_override("font_color", Color("#91a8d8"))
+	right_panel.add_child(prompt_title)
+
+	prompt_input = LineEdit.new()
+	prompt_input.placeholder_text = "e.g. make the character wave"
+	prompt_input.position = Vector2(24, 378)
+	prompt_input.size = Vector2(280, 36)
+	prompt_input.text_submitted.connect(_generate_from_prompt)
+	right_panel.add_child(prompt_input)
+
+	var generate_button := Button.new()
+	generate_button.text = "Generate animation"
+	generate_button.position = Vector2(24, 420)
+	generate_button.size = Vector2(280, 38)
+	generate_button.pressed.connect(func() -> void: _generate_from_prompt(prompt_input.text))
+	right_panel.add_child(generate_button)
+
 	var parts_title := Label.new()
 	parts_title.text = "RIG PARTS"
-	parts_title.position = Vector2(24, 374)
+	parts_title.position = Vector2(24, 476)
 	parts_title.add_theme_color_override("font_color", Color("#91a8d8"))
 	right_panel.add_child(parts_title)
 
-	var y := 408
+	var y := 510
 	for part_name in PARTS:
 		var button := Button.new()
 		button.text = part_name
 		button.position = Vector2(24, y)
-		button.size = Vector2(280, 34)
+		button.size = Vector2(280, 30)
 		button.pressed.connect(_select_part.bind(part_name))
 		right_panel.add_child(button)
-		y += 38
+		y += 32
 
 	var timeline_panel := ColorRect.new()
 	timeline_panel.color = Color("#151a29")
@@ -252,9 +273,81 @@ func _update_timeline() -> void:
 		marker += ("#" if keyframes.has(frame) else ".") + " "
 	timeline_label.text = "Frame %d    %s" % [current_frame, marker]
 
-func _reset_pose() -> void:
+func _generate_from_prompt(prompt: String) -> void:
+	var normalized := prompt.strip_edges().to_lower()
+	if normalized.is_empty():
+		status_label.text = "Enter a prompt such as 'make the character wave'"
+		return
+	var animation_name := ""
+	if "wave" in normalized:
+		animation_name = "wave"
+		_make_wave_animation()
+	elif "walk" in normalized or "run" in normalized:
+		animation_name = "walk"
+		_make_walk_animation()
+	elif "jump" in normalized:
+		animation_name = "jump"
+		_make_jump_animation()
+	elif "dance" in normalized:
+		animation_name = "dance"
+		_make_dance_animation()
+	else:
+		status_label.text = "I don't know that animation yet. Try: wave, walk, jump, or dance."
+		return
+	current_frame = 0
+	_apply_keyframe_pose(0)
+	_update_timeline()
+	status_label.text = "Generated '%s' animation from prompt" % animation_name
+
+func _begin_generated_animation() -> void:
+	keyframes.clear()
+	_reset_all_pose()
+
+func _set_generated_frame(frame: int, poses: Dictionary) -> void:
+	keyframes[frame] = poses
+
+func _make_wave_animation() -> void:
+	_begin_generated_animation()
+	_set_generated_frame(0, {"Right Arm": Vector3.ZERO})
+	_set_generated_frame(8, {"Right Arm": Vector3(-25, 0, -55), "Head": Vector3(0, 0, 8)})
+	_set_generated_frame(16, {"Right Arm": Vector3(25, 0, -55), "Head": Vector3(0, 0, -8)})
+	_set_generated_frame(24, {"Right Arm": Vector3(-25, 0, -55), "Head": Vector3(0, 0, 8)})
+	_set_generated_frame(32, {"Right Arm": Vector3.ZERO})
+
+func _make_walk_animation() -> void:
+	_begin_generated_animation()
+	_set_generated_frame(0, {"Left Leg": Vector3(-28, 0, 0), "Right Leg": Vector3(28, 0, 0), "Left Arm": Vector3(28, 0, 0), "Right Arm": Vector3(-28, 0, 0)})
+	_set_generated_frame(8, {"Left Leg": Vector3(28, 0, 0), "Right Leg": Vector3(-28, 0, 0), "Left Arm": Vector3(-28, 0, 0), "Right Arm": Vector3(28, 0, 0)})
+	_set_generated_frame(16, {"Left Leg": Vector3(-28, 0, 0), "Right Leg": Vector3(28, 0, 0), "Left Arm": Vector3(28, 0, 0), "Right Arm": Vector3(-28, 0, 0)})
+
+func _make_jump_animation() -> void:
+	_begin_generated_animation()
+	_set_generated_frame(0, {"Left Leg": Vector3.ZERO, "Right Leg": Vector3.ZERO})
+	_set_generated_frame(8, {"Left Leg": Vector3(-18, 0, 0), "Right Leg": Vector3(18, 0, 0), "Left Arm": Vector3(-35, 0, 0), "Right Arm": Vector3(-35, 0, 0)})
+	_set_generated_frame(16, {"Left Leg": Vector3(-18, 0, 0), "Right Leg": Vector3(18, 0, 0), "Left Arm": Vector3(-35, 0, 0), "Right Arm": Vector3(-35, 0, 0)})
+	_set_generated_frame(24, {"Left Leg": Vector3.ZERO, "Right Leg": Vector3.ZERO, "Left Arm": Vector3.ZERO, "Right Arm": Vector3.ZERO})
+
+func _make_dance_animation() -> void:
+	_begin_generated_animation()
+	_set_generated_frame(0, {"Left Arm": Vector3(0, 0, -35), "Right Arm": Vector3(0, 0, 35), "Head": Vector3(0, 0, -10)})
+	_set_generated_frame(8, {"Left Arm": Vector3(0, 0, 35), "Right Arm": Vector3(0, 0, -35), "Head": Vector3(0, 0, 10)})
+	_set_generated_frame(16, {"Left Arm": Vector3(0, 0, -35), "Right Arm": Vector3(0, 0, 35), "Head": Vector3(0, 0, -10)})
+
+func _reset_all_pose() -> void:
 	for node in part_nodes.values():
 		node.rotation = Vector3.ZERO
+
+func _apply_keyframe_pose(frame: int) -> void:
+	_reset_all_pose()
+	if not keyframes.has(frame):
+		return
+	for part_name in keyframes[frame]:
+		if part_nodes.has(part_name):
+			part_nodes[part_name].rotation_degrees = keyframes[frame][part_name]
+	_select_part(selected_part)
+
+func _reset_pose() -> void:
+	_reset_all_pose()
 	_select_part(selected_part)
 	status_label.text = "Pose reset"
 
@@ -282,7 +375,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_add_keyframe()
 		elif event.keycode == KEY_LEFT:
 			current_frame = maxi(current_frame - 1, 0)
+			_apply_keyframe_pose(current_frame)
 			_update_timeline()
 		elif event.keycode == KEY_RIGHT:
 			current_frame = mini(current_frame + 1, 120)
+			_apply_keyframe_pose(current_frame)
 			_update_timeline()

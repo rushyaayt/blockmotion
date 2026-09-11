@@ -9,6 +9,7 @@ BlockMotion is a Godot 4 prototype for creating block-style Minecraft animations
 - Pose reset and keyframe capture
 - Frame stepping with Left/Right arrow keys
 - Project save/load using Godot's `user://` storage
+- Offline prompt-based animation generation for wave, walk, jump, and dance
 
 ## Run
 
@@ -30,4 +31,14 @@ The same project can be exported from Godot's export menu for Android, Windows, 
 8. Use **Reset pose** whenever you want to return all body parts to their default rotation.
 9. Click **Save project** to save the animation data locally, then use **Load** to restore it later.
 
-Keyframe markers are shown in the timeline as `#`. Once pose controls are available, a simple walking animation can be made by rotating the left and right legs in opposite directions on alternating frames, then adding matching arm keyframes. The current MVP stores keyframes and poses but does not yet export a Minecraft model or video.
+## Generate from a prompt
+
+1. Enter a prompt in the **Prompt Animation** field.
+2. Click **Generate animation** or press **Enter**.
+3. Use prompts containing `wave`, `walk`, `run`, `jump`, or `dance`, for example:
+   - `Make the character wave`
+   - `Create a walking animation`
+   - `Make the character jump`
+4. The matching motion is converted into keyframes and applied to the block character. Use the arrow keys to preview the generated frames.
+
+The prompt generator currently works offline with these supported animation patterns. Prompts outside these patterns are reported clearly instead of silently producing the wrong animation. The current MVP stores keyframes and poses but does not yet export a Minecraft model or video.
